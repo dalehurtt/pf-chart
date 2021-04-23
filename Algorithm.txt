@@ -1,0 +1,31 @@
+Open File
+Read Into Lines
+Skip 1 Line
+For Each Line
+	Parse Line
+	Convert to Class
+	Add to List
+Get the High
+Get the Low
+Create a 1% Scale from 1% Above High to Below Low
+Get the Count of the Scale
+Calculate Width of Y Scale
+Create Data Chart (Array of String)
+Write Numeric Scale to Data Chart
+Append Blanks to Data Chart
+Determine Direction of Stock Data
+Plot First Data Point
+For Each Data Point
+	If Direction is Up
+		Still Up?
+			Plot Up Data Point
+		Reversed?
+			Append Blanks to Data Chart
+			Plot Down Data Points
+	If Direction is Down
+		Still Down?
+			Plot Down Data Point
+		Reversed?
+			Append Blanks to Data Chart
+			Plot Up Points
+Write Data Chart to Output

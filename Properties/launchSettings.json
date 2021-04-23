@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "pf-chart": {
+      "commandName": "Project",
+      "commandLineArgs": "C:\\Users\\dalehu\\Documents\\Stocks\\GILT-2021-04-20.csv"
+    }
+  }
+}

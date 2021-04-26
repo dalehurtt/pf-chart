@@ -45,6 +45,9 @@ namespace Charts {
         private static (List<DailyPointValues>, List<decimal>) CalculateAllPoints (this List<DailyStockValues> values) {
             List<DailyPointValues> points = null;
             List<decimal> scale = null;
+            List<int> highs = new List<int> ();
+            List<int> lows = new List<int> ();
+
             try {
                 scale = values.GetHighLowAndIncrement ()
                     .OutputScale ();
@@ -64,7 +67,18 @@ namespace Charts {
                 };
 
                 for (var i = 0; i < cnt; i++) {
-                    DailyPointValues newPoints = values [i].CalculatePoint (scale, lastPoints);
+                    DailyPointValues newPoints = values [i].CalculatePoint (scale, lastPoints, highs, lows);
+
+                    // Check to see if the price reversed.
+                    if (lastPoints.Signal != newPoints.Signal) {
+                        if (lastPoints.Signal == PointSignal.Buy || lastPoints.Signal == PointSignal.Up) {
+                            highs.Add (lastPoints.HighLowIndex);
+                        }
+                        else if (lastPoints.Signal == PointSignal.Sell || lastPoints.Signal == PointSignal.Down) {
+                            lows.Add (lastPoints.HighLowIndex);
+                        }
+                    }
+
                     lastPoints = newPoints;
                     points.Add (newPoints);
                 }
@@ -75,10 +89,11 @@ namespace Charts {
             return (points, scale);
         }
 
-        private static DailyPointValues CalculatePoint (this DailyStockValues value, List<decimal> scale, DailyPointValues lastPoints) {
+        private static DailyPointValues CalculatePoint (this DailyStockValues value, List<decimal> scale, DailyPointValues lastPoints, List<int> highs, List<int> lows) {
             DailyPointValues newPoints = null;
             decimal newPoint;
             int newIndex;
+
             try {
                 (newPoint, newIndex) = FindPointValue (scale, value.Close, lastPoints.Signal);
 
@@ -138,12 +153,19 @@ namespace Charts {
                     case PointSignal.Up:
                         // The Close went below the Target.
                         if (value.Close <= lastPoints.Target) {
+                            newIndex -= 1;
+                            newPoint = scale [newIndex];
                             var newTargetIndex = newIndex >= 3 ? newIndex - 3 : 0;
                             newPoints.HighLowIndex = newIndex;
                             newPoints.HighLow = newPoint;
                             newPoints.PointIndex = newIndex;
                             newPoints.Point = newPoint;
-                            newPoints.Signal = PointSignal.Down;
+                            if (lows.Count > 0 && newIndex > lows.Last ()) {
+                                newPoints.Signal = PointSignal.Sell;
+                            }
+                            else {
+                                newPoints.Signal = PointSignal.Down;
+                            }
                             newPoints.TargetIndex = newTargetIndex;
                             newPoints.Target = scale [newTargetIndex];
                         }
@@ -174,12 +196,19 @@ namespace Charts {
                     case PointSignal.Down:
                         // The Close went above the Target.
                         if (value.Close >= lastPoints.Target) {
+                            newIndex += 1;
+                            newPoint = scale [newIndex];
                             var newTargetIndex = newIndex + 3;
                             newPoints.HighLowIndex = newIndex;
                             newPoints.HighLow = newPoint;
                             newPoints.PointIndex = newIndex;
                             newPoints.Point = newPoint;
-                            newPoints.Signal = PointSignal.Up;
+                            if (highs.Count > 0 && newIndex < highs.Last ()) {
+                                newPoints.Signal = PointSignal.Buy;
+                            }
+                            else {
+                                newPoints.Signal = PointSignal.Up;
+                            }
                             newPoints.TargetIndex = newTargetIndex;
                             newPoints.Target = scale [newTargetIndex];
                         }
@@ -252,6 +281,7 @@ namespace Charts {
 
         private static List<decimal> GetHighLowAndIncrement (this List<DailyStockValues> values) {
             List<decimal> scale = null;
+
             try {
                 decimal high = 0, low = 0;
                 foreach (DailyStockValues value in values) {
@@ -333,6 +363,7 @@ namespace Charts {
 
         private static List<DailyStockValues> ReadStockFile (this PathInfo pi) {
             List<DailyStockValues> values = null;
+
             try {
                 values = File.ReadAllLines (pi.FullPath)
                     .Skip (1)
